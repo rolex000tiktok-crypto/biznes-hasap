@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="tk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Biznes Hasap</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:20px;font-family:Arial,sans-serif;background:#f1f5f9;color:#172033}
+main{max-width:600px;margin:auto}
+header{background:#123c32;color:white;padding:22px;border-radius:18px}
+header p{color:#d1e7df}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.card,form,.entry{background:white;padding:15px;border-radius:14px;margin-bottom:10px}
+small{color:#64748b}
+strong{display:block;margin-top:8px;overflow-wrap:anywhere}
+input,select,button{width:100%;padding:13px;margin:6px 0;border:1px solid #d5dce5;border-radius:9px;font-size:16px}
+button{background:#167653;color:white;border:0;font-weight:bold}
+.entry{display:flex;justify-content:space-between;gap:10px}
+.income{color:#07864b}.expense{color:#d92d20}
+</style>
+</head>
+<body>
+<main>
+<header><h1>Biznes Hasap</h1><p>Biznesiňi akylly dolandyr.</p></header>
+<div class="cards">
+<div class="card"><small>Jemi girdeji</small><strong id="income">0 TMT</strong></div>
+<div class="card"><small>Jemi çykdajy</small><strong id="expense">0 TMT</strong></div>
+<div class="card"><small>Galan pul (tapawut)</small><strong id="balance">0 TMT</strong></div>
+<div class="card"><small>Amallaryň sany</small><strong id="count">0</strong></div>
+</div>
+<form id="form">
+<h3>Täze amal goş</h3>
+<select id="type"><option value="income">Girdeji</option><option value="expense">Çykdajy</option></select>
+<input id="amount" type="number" min="0.01" step="0.01" placeholder="Mukdar (TMT)" required>
+<input id="note" maxlength="100" placeholder="Düşündiriş" required>
+<input id="date" type="date" required>
+<button type="submit">+ Amaly goş</button>
+</form>
+<h3>Amallaryň taryhy</h3><div id="entries"></div>
+<button id="export" type="button">Hasabaty CSV görnüşinde al</button>
+<p><small>Maglumatlar şu enjamyň brauzerinde saklanýar.</small></p>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let data=[];
+try{data=JSON.parse(localStorage.getItem("biznes-hasap")||"[]");if(!Array.isArray(data))data=[];}catch{data=[];}
+$("date").value=new Date().toLocaleDateString("en-CA");
+const money=n=>n.toLocaleString("en-US",{maximumFractionDigits:2})+" TMT";
+function render(){
+const inc=data.filter(x=>x.type==="income").reduce((s,x)=>s+x.amount,0);
+const exp=data.filter(x=>x.type==="expense").reduce((s,x)=>s+x.amount,0);
+$("income").textContent=money(inc);$("expense").textContent=money(exp);$("balance").textContent=money(inc-exp);$("count").textContent=data.length;
+$("entries").replaceChildren();
+[...data].reverse().forEach(x=>{const row=document.createElement("div");row.className="entry";const info=document.createElement("span");info.textContent=x.date+" · "+x.note;const amount=document.createElement("strong");amount.className=x.type;amount.textContent=(x.type==="income"?"+":"−")+money(x.amount);row.append(info,amount);$("entries").append(row);});
+}
+$("form").addEventListener("submit",e=>{e.preventDefault();const amount=Number($("amount").value);const note=$("note").value.trim();if(!Number.isFinite(amount)||amount<=0||!note)return;data.push({type:$("type").value,amount,note,date:$("date").value});try{localStorage.setItem("biznes-hasap",JSON.stringify(data));}catch{data.pop();alert("Maglumat saklanyp bilmedi. Enjamdaky boş ýeri barla.");return;}$("amount").value="";$("note").value="";render();});
+$("export").addEventListener("click",()=>{const quote=s=>'"'+String(s).replace(/"/g,'""')+'"';const csv="\uFEFFGörnüş,Mukdar,Senesi,Düşündiriş\n"+data.map(x=>[x.type==="income"?"Girdeji":"Çykdajy",x.amount,x.date,x.note].map(quote).join(",")).join("\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));const a=document.createElement("a");a.href=url;a.download="biznes-hasap.csv";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+render();
+</script>
+</body>
+</html>
